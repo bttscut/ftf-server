@@ -1,0 +1,5 @@
+//API header
+message Package {
+    optional int32 proto_id = 1;
+    optional bytes proto_msg = 2;
+}
