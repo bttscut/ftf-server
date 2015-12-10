@@ -1,0 +1,15 @@
+message test {
+    optional int32 id = 1;
+    optional string msg = 2;
+    message response {
+        optional int32 ok = 1;
+    }
+}
+
+message test_add {
+    optional int32 a = 1;
+    optional int32 b = 2;
+    message response {
+        optional int32 sum = 1;
+    }
+}
