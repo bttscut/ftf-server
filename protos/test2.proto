@@ -1,7 +1,0 @@
-message test_sub {
-    optional int32 a = 1;
-    optional int32 b = 2;
-    message response {
-        optional int32 diff = 3;
-    }
-}
