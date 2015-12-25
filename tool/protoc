@@ -1,0 +1,24 @@
+#!/usr/bin/env escript
+
+main([Dir, IncludeDir, EbinDir]) ->
+    code:add_path("../deps/protobuffs/ebin"),
+    compile(Dir, IncludeDir, EbinDir).
+
+compile(Dir, IncludeDir, EbinDir) ->
+    io:format("start compile ~p~n", [Dir]),
+    Options = [{output_include_dir, IncludeDir}, {output_src_dir, EbinDir}],
+    case file:list_dir(Dir) of
+        {ok, FileNames} ->
+            Files = [File || File <- FileNames, filename:extension(File) == ".proto"],
+            lists:foreach(fun(V) -> compile(filename:join(Dir, V), Options) end, Files),
+            {ok, S} = file:open("../einclude/pb.hrl", write),
+            lists:foreach(fun(V) -> io:format(S, "-include(\"einclude/~s_pb.hrl\").~n", [filename:basename(V, ".proto")]) end, Files),
+            file:close(S);
+        {error, Reason} ->
+            io:format("list dir ~p error ~p~n", [Dir, Reason])
+    end.
+
+compile(AbsFileName, Options) ->
+    protobuffs_compile:scan_file(AbsFileName, Options),
+    protobuffs_compile:generate_source(AbsFileName, Options),
+    ok.
