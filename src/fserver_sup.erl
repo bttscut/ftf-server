@@ -25,6 +25,14 @@ start_link() ->
 init([]) ->
     {ok, { {one_for_one, 5, 10}, [
                 {
+                    cfg_srv,
+                    {cfg_srv, start_link, []},
+                    permanent,
+                    10000,
+                    worker,
+                    [cfg_srv]
+                },
+                {
                     login_srv,
                     {login_srv, start_link, [8888]},
                     permanent,
