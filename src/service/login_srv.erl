@@ -45,10 +45,8 @@ accept(Listen) ->
         {ok, Socket} ->
             log:info("accpeted: ~p...", [Socket]),
             %Pid = spawn(proto_launcher2, start, [Socket, {login_auth, 0}]),
-            State = #csrv_state{proto = login_auth, mstate={}},
-            {ok, Pid} = client_srv:start(Socket, State, [{interval, 1000}]),
-            ok = gen_tcp:controlling_process(Socket, Pid),
-            log:info("controlling over!");
+            State = #csrv_state{proto = login_auth, mstate={Socket}},
+            client_srv:start(Socket, State, [{interval, 1000}]);
         {error, Reason} ->
             log:info("accept err: ~p", Reason)
     end,

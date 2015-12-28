@@ -6,7 +6,9 @@
 -include("include/client_srv.hrl").
 
 start(Socket, State, Opts) ->
-    gen_server:start(?MODULE, {Socket, State, Opts}, []).
+    {ok, Pid} = gen_server:start(?MODULE, {Socket, State, Opts}, []),
+    gen_tcp:controlling_process(Socket, Pid),
+    {ok, Pid}.
 
 init({Socket, State, Opts}) ->
     gen_server:cast(self(), {start, Socket, Opts}),
@@ -14,7 +16,6 @@ init({Socket, State, Opts}) ->
     {ok, State}.
     
 handle_call(Msg, From, State) ->
-    log:error("~p error call from: ~p msg: ~p", [?MODULE, From, Msg]),
     RMod = State#csrv_state.routine,
     case RMod of
         undefined -> 
@@ -34,7 +35,8 @@ handle_cast({start, Socket, Opts}, State) ->
 handle_cast({loop, Socket, LastTs, Interval}, State) ->
     NewMState = loop(Socket, State, LastTs, Interval),
     {noreply, NewMState};
-
+handle_cast({stop, Reason}, State)->
+    {stop, Reason, State};
 handle_cast(Msg, State) ->
     log:error("~p error cast msg:~p", [?MODULE, Msg]),
     {noreply, State}.
@@ -44,7 +46,6 @@ handle_info(Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, _State) ->
-    log:error("terminate"),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -80,7 +81,8 @@ loop(Socket, #csrv_state{proto=PMod,routine=RMod,mstate=MState}=State, LastTs, I
             NewMState;
         {error, closed} ->
             log:info("socket closed: ~p", [Socket]),
-            exit(socket_closed);
+            gen_server:cast(self(), {stop, socket_closed}),
+            MState;
         {error, timeout} ->
             MState;
         Err ->
@@ -89,7 +91,7 @@ loop(Socket, #csrv_state{proto=PMod,routine=RMod,mstate=MState}=State, LastTs, I
     end,
     NewMState3 = case RMod of
         undefined -> NewMState2;
-        _ -> RMod:update(NewMState2)
+        _ -> RMod:update(NewMState2, Interval)
     end,
     TimeDiff = NextTs - os:system_time(milli_seconds),
     %log:debug(TimeDiff),
